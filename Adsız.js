@@ -49,37 +49,58 @@ function secme(userinput) {
 }
 */
 
-
 const admin = require('firebase-admin');
 const fs = require('fs');
-const path = require('path');
 
-// Servis hesabı JSON dosyasının yolu
-const serviceAccount = require('./homework-1-44305-firebase-adminsdk-a2y1e-6915be034c.json');
-
-// Firebase Admin SDK'yı başlat
+// Firebase Admin SDK'yı başlatma
+const serviceAccount = require('./homework-1-44305-firebase-adminsdk-a2y1e-eff6e7fe3f.json'); // İndirdiğiniz JSON dosyası
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'gs://homework-1-44305.firebasestorage.app/veriler', // Storage bucket adı
+  storageBucket: 'homework-1-44305.firebasestorage.app', // Firebase projenizin bucket adı
 });
 
-// Storage referansı
 const bucket = admin.storage().bucket();
 
-// Dosya yolunu tanımla
-const filePath = 'https://firebasestorage.googleapis.com/v0/b/homework-1-44305.firebasestorage.app/o/veriler%2Fveri.txt?alt=media&token=a104b646-c579-4fbd-a7d1-b17657c53706';
+// Dosya okuma ve token değerini artırma fonksiyonu
+async function readAndUpdateToken(filePath) {
+  try {
+    const file = bucket.file(filePath);
+    const [content] = await file.download();
+    let data = content.toString(); // Dosya içeriği string olarak alınır
 
-// Geçici bir yerel dosyaya indir ve içeriğini oku
-bucket.file(filePath).download((err, contents) => {
-  if (err) {
-    console.error('Dosya indirilemedi:', err);
-    return;
+    console.log('Orijinal dosya içeriği:');
+    console.log(data);
+
+    // "token:" kısmını bulup değerini artırma
+    let tokenMatch = data.match(/tokenA: \s*(\d+)/);
+    
+    if (tokenMatch) {
+      // Token değerini bulduktan sonra artırma
+      let currentTokenValue = parseInt(tokenMatch[1], 10); // Eski token değerini al
+      let newTokenValue = currentTokenValue + 100; // 100 ekleyelim
+
+
+      // Yeni dosya içeriğini oluşturma
+      const updatedData = data.replace(`tokenA: ${tokenMatch[1]}`, `tokenA: ${newTokenValue}`);
+      
+      console.log('Güncellenmiş dosya içeriği:');
+      console.log(updatedData);
+
+      // Güncellenmiş içeriği Firebase Storage'a kaydetme
+      await file.save(updatedData);
+      console.log('Dosya başarıyla güncellendi!');
+    } else {
+      console.log('Token bilgisi dosyada bulunamadı!');
+    }
+
+  } catch (error) {
+    console.error('Dosya okuma veya yazma sırasında hata oluştu:', error);
   }
+}
 
-  // İçeriği yazdır
-  console.log('Dosya içeriği:');
-  console.log(contents.toString());
-});
+// Dosya yolunu belirtin
+readAndUpdateToken('veriler/veri.txt');
+
 
 
 
